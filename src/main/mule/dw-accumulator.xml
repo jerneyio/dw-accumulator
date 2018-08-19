@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="ba927ebe-c638-4743-99db-0393af9f2874" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<flow name="accumulator" doc:id="e89171e8-b0da-49eb-86fe-4689105af414" >
+		<http:listener doc:name="Listener" doc:id="4b2ad3d6-c8a4-471f-be1f-2777e80ea2a1" config-ref="HTTP_Listener_config" path="/trigger"/>
+		<logger level="INFO" doc:name="Logger" doc:id="891166de-85b0-4a15-aa6f-51b315b699ef" message="Beginning accumulator"/>
+		<ee:transform doc:name="Set Payload" doc:id="6eb57fc6-f364-43e5-8769-e1dbc15e176c" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+["1", "2", "3", "4", "5"]]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<ee:transform doc:name="Init acc" doc:id="acb44044-ce6b-4a2c-ab2c-2ce07cc80ce6" >
+			<ee:message >
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="acc" ><![CDATA[%dw 2.0
+output application/java
+---
+[]]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<foreach doc:name="For Each" doc:id="0b7fbf1a-b139-4295-b988-c2707872cfdc" >
+			<logger level="INFO" doc:name="Log current value of iteration" doc:id="04e61d33-24ed-4e0a-bb1f-20f43fa894e1" message="Current value of iteration is #[payload]"/>
+			<flow-ref doc:name="callMockService" doc:id="9bc1ce7c-d523-4fd4-b709-eeb1d3ebf4ef" name="callMockService" target="result" targetValue="#[payload]"/>
+			<ee:transform doc:name="Reassign acc" doc:id="2c06aff3-86aa-4f0e-9f0d-a10f21de0cf7" >
+				<ee:message >
+				</ee:message>
+				<ee:variables >
+					<ee:set-variable variableName="acc" ><![CDATA[%dw 2.0
+output application/java
+---
+vars.acc + vars.result.value]]></ee:set-variable>
+				</ee:variables>
+			</ee:transform>
+			<logger level="INFO" doc:name="Log value of acc" doc:id="bfa89d2d-0a87-42f0-846f-36eeaae8265f" message="Current value of acc is #[vars.acc]"/>
+		</foreach>
+	</flow>
+	<sub-flow name="callMockService" doc:id="dac84396-d508-44cb-9a17-f66e15afd223" >
+		<ee:transform doc:name="Generate Random Int" doc:id="d7649789-1840-41d9-bff2-1f5354f8e8aa" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+
+var dataSource = {
+	"1": "one",
+	"2": "two",
+	"3": "three",
+	"4": "four",
+	"5": "five"
+}
+---
+{
+  value: dataSource[payload as String]
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</sub-flow>
+</mule>
